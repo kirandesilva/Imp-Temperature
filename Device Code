@@ -1,0 +1,64 @@
+// Device Code
+#require "Si702x.class.nut:1.0.0"
+
+// Instance the Si702x and save a reference in tempHumidSensor
+hardware.i2c89.configure(CLOCK_SPEED_400_KHZ);
+local tempHumidSensor = Si702x(hardware.i2c89);
+
+// Configure the LED (on pin 2) as digital out with 0 start state
+local led = hardware.pin2;
+led.configure(DIGITAL_OUT, 0);
+
+// This function will be called regularly to take the temperature
+// and log it to the device’s agent
+
+function takeTemp() {
+    tempHumidSensor.read(function(reading) {
+        // The read() method is passed a function which will be
+        // called when the temperature data has been gathered.
+        // This 'callback' function also needs to handle our
+        // housekeeping: flash the LED to show a reading has
+        // been taken; send the data to the agent; 
+        // put the device to sleep
+        
+        // Create a Squirrel table to hold the data - handy if we 
+        // later want to package up other data from other sensors
+        local data = {};
+    
+        // Get the temperature using the Si7020 object’s readTemp() method
+        // Add the temperature using Squirrel’s 'new key' operator
+        data.temp <- reading.temperature;
+        
+    
+        // Send the packaged data to the agent
+        agent.send("reading", data);
+    
+        // Flash the LED to show we've taken a reading
+        flashLed();
+    
+        // All done, we can put the device to sleep for 5 minutes,
+        // but make sure impOS has no work of its own to do first –
+        // ie. wait until it goes idle then call the packaged inline
+        // function
+        imp.onidle(function() { 
+            server.sleepfor(1);
+        });
+    });
+}
+
+function flashLed() {
+    // Turn the LED on (write a HIGH value)
+    led.write(1);
+    
+    // Pause for half a second
+    imp.sleep(0.5);
+    
+    // Turn the LED off
+    led.write(0);
+}
+
+// Take a temperature reading as soon as the device starts up
+// Note: when the device wakes from sleep (caused by line 32)
+// it runs its device code afresh - ie. it does a warm boot
+takeTemp();
+readHumidity();

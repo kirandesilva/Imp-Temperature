@@ -1,0 +1,16 @@
+// Agent Code
+#require "Dweetio.class.nut:1.0.0"
+
+// Create a Dweet instance
+local client = DweetIO();
+
+// Add a function to post data from the device to your stream
+
+function postReading(reading) {
+    // Note: reading is the data passed from the device, ie.
+    // a Squirrel table with the key 'temp'
+    client.dweet("kiran", reading, null);
+}
+
+// Register the function to handle data messages from the device
+device.on("reading", postReading);
